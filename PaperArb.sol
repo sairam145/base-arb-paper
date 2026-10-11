@@ -4,8 +4,10 @@ pragma solidity ^0.8.24;
 /*
  * PaperArb — NEVER deployed. paper.py injects this code at a fake address inside
  * a free eth_call (state override), so the full trade runs against real Base state:
- * real Balancer flash loan, real Uniswap / Aerodrome swaps, real fees and slippage.
- * Returns the profit in WETH wei, or reverts with Short(have, owed) if it would lose.
+ * real Balancer flash loan of WETH -> sell WETH for TOKEN on venue A -> buy WETH back on venue B.
+ * Returns profit in WETH wei, or reverts Short(have, owed) with the exact shortfall.
+ *
+ * Venues: 0 = Uniswap V3 0.05%, 1 = Uniswap V3 0.30%, 2 = Uniswap V3 1%, 3 = Aerodrome volatile
  */
 
 interface IERC20 {
@@ -34,28 +36,28 @@ contract PaperArb {
     address constant AERO = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
     address constant AERO_FACTORY = 0x420DD381b31aEf6683db6B902084cB0FFECe40Da;
     address constant WETH = 0x4200000000000000000000000000000000000006;
-    address constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
     error Short(uint256 have, uint256 owed);
+    error BadVenue();
 
-    function simulate(uint256 amount, uint8 sellVenue, uint8 buyVenue) external returns (uint256 profit) {
+    function simulate(uint256 amount, address token, uint8 sellVenue, uint8 buyVenue) external returns (uint256) {
         IERC20(WETH).approve(UNI, type(uint256).max);
-        IERC20(USDC).approve(UNI, type(uint256).max);
         IERC20(WETH).approve(AERO, type(uint256).max);
-        IERC20(USDC).approve(AERO, type(uint256).max);
+        IERC20(token).approve(UNI, type(uint256).max);
+        IERC20(token).approve(AERO, type(uint256).max);
         address[] memory t = new address[](1);
         t[0] = WETH;
         uint256[] memory a = new uint256[](1);
         a[0] = amount;
-        IBalancerVault(VAULT).flashLoan(address(this), t, a, abi.encode(sellVenue, buyVenue));
+        IBalancerVault(VAULT).flashLoan(address(this), t, a, abi.encode(token, sellVenue, buyVenue));
         return IERC20(WETH).balanceOf(address(this));
     }
 
     function receiveFlashLoan(address[] memory, uint256[] memory amounts, uint256[] memory fees, bytes memory data) external {
         require(msg.sender == VAULT, "vault");
-        (uint8 s, uint8 b) = abi.decode(data, (uint8, uint8));
-        uint256 usdcOut = _swap(s, WETH, USDC, amounts[0]);
-        _swap(b, USDC, WETH, usdcOut);
+        (address token, uint8 s, uint8 b) = abi.decode(data, (address, uint8, uint8));
+        uint256 got = _swap(s, WETH, token, amounts[0]);
+        _swap(b, token, WETH, got);
         uint256 owed = amounts[0] + fees[0];
         uint256 have = IERC20(WETH).balanceOf(address(this));
         if (have < owed) revert Short(have, owed);
@@ -63,13 +65,17 @@ contract PaperArb {
     }
 
     function _swap(uint8 v, address i, address o, uint256 amt) internal returns (uint256) {
-        if (v < 2) {
+        if (v <= 2) {
+            uint24 fee = v == 0 ? 500 : (v == 1 ? 3000 : 10000);
             return IUniV3Router02(UNI).exactInputSingle(IUniV3Router02.ExactInputSingleParams(
-                i, o, v == 0 ? 500 : 3000, address(this), amt, 0, 0));
+                i, o, fee, address(this), amt, 0, 0));
         }
-        IAeroRouter.Route[] memory r = new IAeroRouter.Route[](1);
-        r[0] = IAeroRouter.Route(i, o, false, AERO_FACTORY);
-        uint256[] memory out = IAeroRouter(AERO).swapExactTokensForTokens(amt, 0, r, address(this), block.timestamp);
-        return out[out.length - 1];
+        if (v == 3) {
+            IAeroRouter.Route[] memory r = new IAeroRouter.Route[](1);
+            r[0] = IAeroRouter.Route(i, o, false, AERO_FACTORY);
+            uint256[] memory out = IAeroRouter(AERO).swapExactTokensForTokens(amt, 0, r, address(this), block.timestamp);
+            return out[out.length - 1];
+        }
+        revert BadVenue();
     }
 }

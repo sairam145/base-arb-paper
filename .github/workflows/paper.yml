@@ -30,17 +30,17 @@ jobs:
         env:
           RPC_HTTP_URL: ${{ secrets.RPC_HTTP_URL }}
           RUN_SECONDS: "3240"
-          CHECK_INTERVAL_SEC: "15"
+          CHECK_INTERVAL_SEC: "30"
         run: python paper.py
 
-      - name: Prune old rows and commit results
+      - name: Commit results
         if: always()
         run: |
-          [ -f paper_trades.csv ] || { echo "no CSV yet, nothing to commit"; exit 0; }
-          python prune_csv.py paper_trades.csv 30
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add paper_trades.csv
+          for f in status.json paper_trades.csv; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --cached --quiet; then
             echo "nothing changed, skipping commit"
             exit 0
