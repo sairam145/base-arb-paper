@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base Arbitrage — Paper Trading</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #111418; --muted: #6b7280; --line: #e5e7eb;
+    --green: #15803d; --red: #b91c1c; --win-bg: #ecfdf3; --accent: #2563eb; --track: #e5e7eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0d10; --card: #15181d; --text: #e8eaed; --muted: #8b93a1; --line: #262b33;
+      --green: #4ade80; --red: #f87171; --win-bg: #0f2a1c; --accent: #60a5fa; --track: #262b33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0d10; --card: #15181d; --text: #e8eaed; --muted: #8b93a1; --line: #262b33;
+    --green: #4ade80; --red: #f87171; --win-bg: #0f2a1c; --accent: #60a5fa; --track: #262b33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0 6px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 24px 0 8px; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .status { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent); }
+  .dot.bad { background: var(--red); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .target { margin-top: 10px; }
+  .track { height: 10px; background: var(--track); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .fill { height: 100%; width: 0; background: var(--green); border-radius: 99px; transition: width .4s; }
+  .small { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 4px; text-align: right; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .chart-box { position: relative; height: 240px; }
+  ul.trades { list-style: none; margin: 0; padding: 0; }
+  ul.trades li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px; border-bottom: 1px solid var(--line); }
+  ul.trades li.win { background: var(--win-bg); border-radius: 8px; }
+  .t { font-size: 13px; color: var(--muted); }
+  .route { font-size: 14px; overflow-wrap: anywhere; }
+  .net { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .res { grid-column: 1 / -1; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .waiting { text-align: center; padding: 48px 16px; color: var(--muted); font-size: 18px; }
+  .note { margin: 28px 0 0; font-size: 13px; color: var(--muted); }
+  @media (max-width: 380px) { .big { font-size: 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Base Arbitrage — Paper Trading</h1>
+  <div class="meta" id="updated">Loading…</div>
+  <div class="status"><span class="dot" id="dot"></span><span id="fresh"></span></div>
+
+  <div id="waiting" class="waiting" hidden>Waiting for first run…</div>
+
+  <div id="content" hidden>
+    <h2 id="today-title">Today</h2>
+    <div class="grid">
+      <div class="card"><div class="label">Checks run</div><div class="big" id="t-checks">0</div></div>
+      <div class="card"><div class="label">WIN count</div><div class="big" id="t-wins">0</div></div>
+      <div class="card"><div class="label">Paper profit</div><div class="big" id="t-usd">$0.00</div></div>
+      <div class="card"><div class="label">Best single trade</div><div class="big" id="t-best">$0.00</div></div>
+    </div>
+    <div class="card target">
+      <div class="label">Progress to $10/day target</div>
+      <div class="track"><div class="fill" id="t-bar"></div></div>
+      <div class="small" id="t-pct"></div>
+    </div>
+
+    <h2>All time</h2>
+    <div class="grid">
+      <div class="card"><div class="label">Total checks</div><div class="big" id="a-checks">0</div></div>
+      <div class="card"><div class="label">Total wins</div><div class="big" id="a-wins">0</div></div>
+      <div class="card"><div class="label">Total paper profit</div><div class="big" id="a-usd">$0.00</div></div>
+      <div class="card"><div class="label">Average $/day</div><div class="big" id="a-avg">$0.00</div></div>
+    </div>
+
+    <h2>Daily</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Date</th><th>Checks</th><th>Wins</th><th>Paper $</th><th>Best $</th></tr></thead>
+        <tbody id="daily"></tbody>
+      </table>
+    </div>
+
+    <h2>Paper $ per day</h2>
+    <div class="card"><div class="chart-box"><canvas id="chart"></canvas></div></div>
+
+    <h2>Recent trades (last 50)</h2>
+    <div class="card" style="padding:4px 6px">
+      <ul class="trades" id="trades"></ul>
+    </div>
+  </div>
+
+  <p class="note">Paper results only. Live results will be lower because faster bots win some trades.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const TARGET_USD = 10;          // daily goal
+const FRESH_MIN = 90;           // "bot is alive" window
+const REFRESH_MS = 5 * 60 * 1000;
+const NY = "America/New_York";
+let chart = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const money = (n, d = 2) => (n < 0 ? "-$" : "$") + Math.abs(n).toFixed(d);
+const dayKey = d => new Intl.DateTimeFormat("en-CA", {timeZone: NY, year: "numeric", month: "2-digit", day: "2-digit"}).format(d);
+const nyTime = d => d.toLocaleString("en-US", {timeZone: NY, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short"});
+const shortDay = key => new Date(key + "T12:00:00Z").toLocaleDateString("en-US", {timeZone: "UTC", month: "short", day: "numeric"});
+
+// RFC 4180 CSV parser: handles quoted commas, escaped quotes and newlines inside fields.
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
+      } else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); rows.push(row); row = []; field = "";
+    } else field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function toRecords(text) {
+  const table = parseCSV(text);
+  if (table.length < 2) return [];
+  const cols = table[0];
+  return table.slice(1)
+    .map(r => {
+      const o = Object.fromEntries(cols.map((c, i) => [c, r[i] ?? ""]));
+      o.t = new Date(o.time_utc);
+      o.net = parseFloat(o.net_usd) || 0;
+      return o;
+    })
+    .filter(o => !isNaN(o.t))
+    .sort((a, b) => a - b);
+}
+
+function render(rows) {
+  const now = new Date();
+  if (!rows.length) {
+    $("waiting").hidden = false;
+    $("content").hidden = true;
+    $("dot").className = "dot bad";
+    $("fresh").textContent = "No data yet";
+    $("updated").textContent = "";
+    return;
+  }
+  $("waiting").hidden = true;
+  $("content").hidden = false;
+
+  // Freshness: has the bot written anything in the last 90 minutes?
+  const latest = rows[rows.length - 1];
+  const ageMin = Math.max(0, Math.round((now - latest.t) / 60000));
+  const alive = ageMin <= FRESH_MIN;
+  $("dot").className = "dot " + (alive ? "ok" : "bad");
+  $("fresh").textContent = alive
+    ? `Bot wrote data ${ageMin} min ago`
+    : `No data in last 90 min (last write ${ageMin} min ago)`;
+  $("updated").textContent = `Last updated ${nyTime(latest.t)} (New York)`;
+
+  // Aggregate per New York calendar day.
+  const days = new Map();
+  for (const r of rows) {
+    const k = dayKey(r.t);
+    const d = days.get(k) || {checks: 0, wins: 0, usd: 0, best: null};
+    d.checks++;
+    if (r.result === "WIN") {
+      d.wins++;
+      d.usd += r.net;
+      d.best = d.best === null ? r.net : Math.max(d.best, r.net);
+    }
+    days.set(k, d);
+  }
+  const keys = [...days.keys()].sort();
+  const empty = {checks: 0, wins: 0, usd: 0, best: null};
+
+  // Today
+  const todayKey = dayKey(now);
+  const t = days.get(todayKey) || empty;
+  $("today-title").textContent = `Today (${shortDay(todayKey)})`;
+  $("t-checks").textContent = t.checks;
+  $("t-wins").textContent = t.wins;
+  $("t-usd").textContent = money(t.usd);
+  $("t-usd").className = "big " + (t.usd >= 0 ? "pos" : "neg");
+  $("t-best").textContent = money(t.best ?? 0);
+  const pct = Math.min(100, Math.max(0, (t.usd / TARGET_USD) * 100));
+  $("t-bar").style.width = pct + "%";
+  $("t-pct").textContent = `${money(t.usd)} of ${money(TARGET_USD, 0)} (${Math.round(pct)}%)`;
+
+  // All time
+  const tot = keys.reduce((a, k) => {
+    const d = days.get(k);
+    return {checks: a.checks + d.checks, wins: a.wins + d.wins, usd: a.usd + d.usd};
+  }, {checks: 0, wins: 0, usd: 0});
+  $("a-checks").textContent = tot.checks;
+  $("a-wins").textContent = tot.wins;
+  $("a-usd").textContent = money(tot.usd);
+  $("a-usd").className = "big " + (tot.usd >= 0 ? "pos" : "neg");
+  $("a-avg").textContent = money(tot.usd / keys.length);
+
+  // Daily table, newest first
+  $("daily").innerHTML = [...keys].reverse().map(k => {
+    const d = days.get(k);
+    const cls = d.usd >= 0 ? "pos" : "neg";
+    return `<tr><td>${shortDay(k)}</td><td>${d.checks}</td><td>${d.wins}</td>` +
+           `<td class="${cls}">${money(d.usd)}</td><td>${d.best === null ? "—" : money(d.best)}</td></tr>`;
+  }).join("");
+
+  // Chart: bars = paper $ per day, line = cumulative
+  let cum = 0;
+  const cumulative = keys.map(k => (cum += days.get(k).usd));
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const ink = dark ? "#8b93a1" : "#6b7280";
+  const grid = dark ? "#262b33" : "#e5e7eb";
+  if (typeof Chart !== "undefined") {
+    const data = {
+      labels: keys.map(shortDay),
+      datasets: [
+        {type: "bar", label: "Day $", data: keys.map(k => days.get(k).usd),
+         backgroundColor: "#16a34a", borderRadius: 4},
+        {type: "line", label: "Cumulative $", data: cumulative,
+         borderColor: dark ? "#60a5fa" : "#2563eb", backgroundColor: dark ? "#60a5fa" : "#2563eb",
+         tension: .25, pointRadius: 2, borderWidth: 2},
+      ],
+    };
+    if (chart) {
+      chart.data = data;
+      chart.update();
+    } else {
+      chart = new Chart($("chart"), {
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {legend: {position: "bottom", labels: {color: ink, boxWidth: 12}}},
+          scales: {
+            x: {ticks: {color: ink, maxRotation: 0, autoSkipPadding: 12}, grid: {color: grid}},
+            y: {ticks: {color: ink, callback: v => money(v, 0)}, grid: {color: grid}},
+          },
+        },
+      });
+    }
+  }
+
+  // Recent trades, newest first
+  $("trades").innerHTML = rows.slice(-50).reverse().map(r => {
+    const cls = r.net >= 0 ? "pos" : "neg";
+    return `<li class="${r.result === "WIN" ? "win" : ""}">` +
+           `<div class="t">${esc(nyTime(r.t))}</div>` +
+           `<div class="net ${cls}">${money(r.net, 4)}</div>` +
+           `<div class="route">${esc(r.size_eth)} ETH · ${esc(r.sell)} → ${esc(r.buy)}</div>` +
+           `<div class="res">${esc(r.result)}</div></li>`;
+  }).join("");
+}
+
+async function load() {
+  try {
+    const res = await fetch(`./paper_trades.csv?t=${Date.now()}`, {cache: "no-store"});
+    if (res.status === 404) return render([]);
+    if (!res.ok) throw new Error(res.status);
+    render(toRecords(await res.text()));
+  } catch (e) {
+    // Network hiccup: keep whatever is on screen and try again on the next tick.
+    console.warn("refresh failed", e);
+  }
+}
+
+load();
+setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>
