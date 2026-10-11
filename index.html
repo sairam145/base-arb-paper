@@ -32,12 +32,26 @@ th:first-child,td:first-child{text-align:left}
 .empty{color:var(--mute);padding:14px;text-align:center}
 .note{color:var(--mute);font-size:12px;margin:24px 0 8px}
 canvas{max-height:240px}
+.explain{font-size:14px}.explain p{margin:6px 0}.explain ul{margin:6px 0;padding-left:18px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;background:var(--card)}
 </style>
 </head>
 <body>
 <main>
   <h1>Base Arbitrage — Paper Trading</h1>
   <div class="sub"><span id="dot" class="dot"></span><span id="health">Loading…</span></div>
+
+  <h2>What we're trying to do</h2>
+  <div class="card explain">
+    <p>Prices for the same coin sometimes differ between exchanges on Base. If you could buy in the cheaper pool and sell in the pricier one, the difference is profit.</p>
+    <p>This bot looks for those gaps every 30 seconds. For each one, it works out whether the round trip would still make money after trading fees, price slippage and gas. It then simulates the full trade on-chain for free, using a Balancer flash loan so no capital is needed.</p>
+    <ul>
+      <li><b>Paper only.</b> No money is spent and no trades are sent. Results are only logged here.</li>
+      <li><b>Winning trade</b> = a simulated profit above $0.05 after all costs.</li>
+      <li><b>Goal:</b> $10 per day in paper profit. Live results would be lower, because faster bots win some of these trades first.</li>
+    </ul>
+  </div>
 
   <h2>Today (New York)</h2>
   <div class="grid">
@@ -54,6 +68,13 @@ canvas{max-height:240px}
     <div class="card"><div class="k">Paper profit</div><div class="v" id="a-usd">–</div></div>
     <div class="card"><div class="k">Avg per day</div><div class="v" id="a-avg">–</div></div>
   </div>
+
+  <h2>Coins we trade</h2>
+  <div class="chips">
+    <span class="chip">USDC</span><span class="chip">cbETH</span><span class="chip">cbBTC</span><span class="chip">AERO</span>
+    <span class="chip">DEGEN</span><span class="chip">BRETT</span><span class="chip">VIRTUAL</span><span class="chip">TOSHI</span>
+  </div>
+  <div class="small" style="margin-bottom:10px">Each coin is priced against WETH. Pools checked: Uniswap V3 at 0.05%, 0.3% and 1%, plus Aerodrome volatile. Trade sizes: 0.1, 0.5 and 2 ETH.</div>
 
   <h2>Coins</h2>
   <div class="small" style="margin-bottom:6px">Best route each check after fees, slippage and gas. Positive = profitable.</div>
