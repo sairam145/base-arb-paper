@@ -1,9 +1,9 @@
 {
- "total_checks": 10091,
+ "total_checks": 10197,
  "total_wins": 0,
  "coins": {
   "USDC": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.0187,
    "pools": [
@@ -12,12 +12,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -0.1832,
+   "best_this_run_usd": -0.2349,
    "best_route": "0.1 ETH uni_0.3% -> uni_0.05%",
-   "last_usd": -0.598
+   "last_usd": -0.2991
   },
   "cbETH": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.9348,
    "pools": [
@@ -26,12 +26,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -1.2538,
+   "best_this_run_usd": -1.2624,
    "best_route": "0.1 ETH aero -> uni_0.05%",
-   "last_usd": -1.2569
+   "last_usd": -1.2631
   },
   "cbBTC": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.1656,
    "pools": [
@@ -40,12 +40,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -0.6528,
-   "best_route": "0.1 ETH uni_0.3% -> uni_0.05%",
-   "last_usd": -0.7906
+   "best_this_run_usd": -0.6165,
+   "best_route": "0.1 ETH uni_0.05% -> uni_0.3%",
+   "last_usd": -0.6504
   },
   "AERO": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.3779,
    "pools": [
@@ -54,12 +54,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -1.4106,
+   "best_this_run_usd": -1.8221,
    "best_route": "0.1 ETH uni_0.3% -> aero",
-   "last_usd": -1.5007
+   "last_usd": -1.8225
   },
   "DEGEN": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.8999,
    "pools": [
@@ -68,12 +68,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -2.4564,
+   "best_this_run_usd": -3.2519,
    "best_route": "0.1 ETH uni_1% -> uni_0.3%",
-   "last_usd": -2.4651
+   "last_usd": -3.2528
   },
   "BRETT": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -1.116,
    "pools": [
@@ -82,12 +82,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -2.531,
+   "best_this_run_usd": -1.5206,
    "best_route": "0.1 ETH uni_1% -> uni_0.3%",
-   "last_usd": -3.2018
+   "last_usd": -2.3578
   },
   "VIRTUAL": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -0.1575,
    "pools": [
@@ -96,12 +96,12 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -0.5484,
+   "best_this_run_usd": -0.7193,
    "best_route": "0.1 ETH uni_0.05% -> uni_0.3%",
-   "last_usd": -1.0258
+   "last_usd": -0.8244
   },
   "TOSHI": {
-   "checks": 10091,
+   "checks": 10197,
    "wins": 0,
    "best_ever_usd": -1.5068,
    "pools": [
@@ -110,16 +110,16 @@
     "uni_1%",
     "aero"
    ],
-   "best_this_run_usd": -2.7692,
+   "best_this_run_usd": -3.6216,
    "best_route": "0.1 ETH uni_0.3% -> uni_1%",
-   "last_usd": -3.0059
+   "last_usd": -3.6216
   }
  },
- "run_started_utc": "2026-10-28T16:21:18+00:00",
- "checks_this_run": 102,
+ "run_started_utc": "2026-10-28T21:25:38+00:00",
+ "checks_this_run": 106,
  "wins_this_run": 0,
  "interval_sec": 30.0,
- "eth_usd": 2329.19,
- "last_check_utc": "2026-10-28T17:14:51+00:00",
- "last_block": 53209171
+ "eth_usd": 2354.76,
+ "last_check_utc": "2026-10-28T22:19:33+00:00",
+ "last_block": 53218312
 }
